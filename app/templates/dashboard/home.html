@@ -1,0 +1,49 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Dashboard — Property Antalya{% endblock %}
+
+{% block dashboard_content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Overview</h1>
+
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Listings</p>
+    <p class="text-3xl font-bold text-gray-900">{{ properties | length }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Active</p>
+    <p class="text-3xl font-bold text-green-600">{{ properties | selectattr('status.value', 'equalto', 'ACTIVE') | list | length }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Inquiries</p>
+    <p class="text-3xl font-bold text-primary">{{ inquiries | length }}</p>
+  </div>
+</div>
+
+<!-- Recent inquiries -->
+{% if inquiries %}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-semibold text-gray-800">Recent Inquiries</h2>
+    <a href="/dashboard/inquiries" class="text-sm text-primary hover:underline">View all</a>
+  </div>
+  <div class="space-y-3">
+    {% for inq in inquiries[:5] %}
+    <div class="flex items-start justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
+      <div>
+        <p class="text-sm font-semibold text-gray-800">{{ inq.name }}</p>
+        <p class="text-xs text-gray-400">{{ inq.email }} · {{ inq.property.title_en[:40] }}...</p>
+        <p class="text-xs text-gray-600 mt-1">{{ inq.message[:80] }}...</p>
+      </div>
+      <p class="text-xs text-gray-400 shrink-0">{{ inq.created_at.strftime('%d %b') }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
+  <p class="font-semibold">No inquiries yet</p>
+  <p class="text-sm mt-1">They will appear here when buyers contact you.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,43 @@
+<a href="/properties/{{ prop.slug }}"
+   class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden group flex flex-col">
+  <!-- Image -->
+  <div class="relative h-52 bg-gray-100 overflow-hidden">
+    {% if prop.cover_image %}
+      <img src="{{ prop.cover_image.url }}" alt="{{ prop.title_en }}"
+           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+    {% else %}
+      <div class="w-full h-full flex items-center justify-center text-gray-300">
+        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+      </div>
+    {% endif %}
+    <!-- Badges -->
+    <div class="absolute top-3 left-3 flex gap-2">
+      <span class="bg-primary text-white text-xs font-semibold px-2 py-1 rounded-md">
+        {{ prop.listing_type.value if prop.listing_type else prop.listing_type }}
+      </span>
+      {% if prop.eligible_for_citizenship %}
+      <span class="bg-yellow-400 text-gray-900 text-xs font-semibold px-2 py-1 rounded-md">🇹🇷 Citizenship</span>
+      {% endif %}
+    </div>
+  </div>
+  <!-- Content -->
+  <div class="p-5 flex flex-col flex-1">
+    <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">
+      {{ prop.district.name if prop.district else "" }} · {{ prop.type.value if prop.type else prop.type }}
+      {% if prop.size_sqm %} · {{ prop.size_sqm|int }}m²{% endif %}
+    </p>
+    <h3 class="font-semibold text-gray-900 text-sm leading-snug mb-3 line-clamp-2 group-hover:text-primary transition-colors">
+      {{ prop.title_en }}
+    </h3>
+    <div class="mt-auto flex items-center justify-between">
+      <span class="text-lg font-bold text-primary">{{ prop.formatted_price }}</span>
+      <div class="flex items-center gap-3 text-xs text-gray-400">
+        {% if prop.bedrooms %}<span>🛏 {{ prop.bedrooms }}</span>{% endif %}
+        {% if prop.bathrooms %}<span>🚿 {{ prop.bathrooms }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+</a>

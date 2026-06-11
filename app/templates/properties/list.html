@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ t.nav_properties }} — Property Antalya{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-10">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">{{ t.nav_properties }} in Antalya</h1>
+
+  <div class="flex flex-col lg:flex-row gap-8">
+
+    <!-- Filters sidebar -->
+    <aside class="w-full lg:w-64 shrink-0">
+      <form id="filter-form" method="get" action="/properties"
+            hx-get="/properties" hx-target="#results-grid"
+            hx-trigger="input delay:400ms from:[name='q'], change delay:200ms from:select, submit"
+            hx-push-url="true"
+            hx-indicator="#search-spinner"
+            class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5 sticky top-20">
+        <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">{{ t.filter_title }}</h2>
+
+        <!-- Search -->
+        <div>
+          <label class="text-xs font-medium text-gray-500 block mb-1">{{ t.filter_search }}</label>
+          <div class="relative">
+            <input type="text" name="q" value="{{ q }}" placeholder="{{ t.filter_keyword }}"
+                   class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"/>
+            <svg id="search-spinner" class="htmx-indicator absolute right-2 top-2.5 w-4 h-4 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Listing type -->
+        <div>
+          <label class="text-xs font-medium text-gray-500 block mb-1">{{ t.filter_type }}</label>
+          <select name="listing_type" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">{{ t.filter_all }}</option>
+            <option value="SALE" {% if listing_type == 'SALE' %}selected{% endif %}>{{ t.for_sale }}</option>
+            <option value="RENT" {% if listing_type == 'RENT' %}selected{% endif %}>{{ t.for_rent }}</option>
+            <option value="SHORT_TERM_RENT" {% if listing_type == 'SHORT_TERM_RENT' %}selected{% endif %}>{{ t.short_term }}</option>
+          </select>
+        </div>
+
+        <!-- Property type -->
+        <div>
+          <label class="text-xs font-medium text-gray-500 block mb-1">{{ t.filter_property }}</label>
+          <select name="type" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">{{ t.filter_all_types }}</option>
+            {% for pt in property_types %}
+            <option value="{{ pt }}" {% if type == pt %}selected{% endif %}>{{ pt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- District -->
+        <div>
+          <label class="text-xs font-medium text-gray-500 block mb-1">{{ t.filter_district }}</label>
+          <select name="district_id" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">{{ t.filter_all_districts }}</option>
+            {% for d in districts %}
+            <option value="{{ d.id }}" {% if district_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Bedrooms -->
+        <div>
+          <label class="text-xs font-medium text-gray-500 block mb-1">{{ t.filter_bedrooms }}</label>
+          <select name="bedrooms" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">{{ t.filter_any }}</option>
+            {% for n in [1,2,3,4,5] %}
+            <option value="{{ n }}" {% if bedrooms == n %}selected{% endif %}>{{ n }}+</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Price range -->
+        <div>
+          <label class="text-xs font-medium text-gray-500 block mb-1">{{ t.filter_price }}</label>
+          <div class="flex gap-2">
+            <input type="number" name="min_price" value="{{ min_price }}" placeholder="Min"
+                   class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            <input type="number" name="max_price" value="{{ max_price }}" placeholder="Max"
+                   class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-primary text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+          {{ t.filter_apply }}
+        </button>
+        <a href="/properties" class="block text-center text-xs text-gray-400 hover:text-gray-600 mt-1">{{ t.filter_clear }}</a>
+      </form>
+    </aside>
+
+    <!-- Results -->
+    <div class="flex-1">
+      <div class="flex items-center justify-between mb-5">
+        <p class="text-sm text-gray-500">
+          <span id="result-count" class="font-semibold text-gray-800">{{ total }}</span> {{ t.properties_found }}
+        </p>
+      </div>
+
+      <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% include "partials/property_cards.html" %}
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+      <div class="flex justify-center gap-2 mt-10">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&q={{ q }}&type={{ type }}&listing_type={{ listing_type }}&district_id={{ district_id }}"
+           class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ t.prev }}</a>
+        {% endif %}
+        <span class="px-4 py-2 text-sm bg-primary text-white rounded-lg">{{ page }} / {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}&q={{ q }}&type={{ type }}&listing_type={{ listing_type }}&district_id={{ district_id }}"
+           class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ t.next }}</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

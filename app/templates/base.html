@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="{{ lang or 'en' }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Property Antalya{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#2563eb', dark: '#1d4ed8' },
+            gold: '#f59e0b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>.htmx-indicator { display: none; } .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline-block; }</style>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <nav class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50" x-data="{ open: false }">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-2">
+          <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span class="font-bold text-lg"><span class="text-primary">Property</span> Antalya</span>
+        </a>
+
+        <!-- Desktop nav -->
+        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+          <a href="/properties" class="hover:text-primary transition-colors">{{ t.nav_properties if t else 'Properties' }}</a>
+          <a href="/properties?listing_type=SALE" class="hover:text-primary transition-colors">{{ t.nav_for_sale if t else 'For Sale' }}</a>
+          <a href="/properties?listing_type=RENT" class="hover:text-primary transition-colors">{{ t.nav_for_rent if t else 'For Rent' }}</a>
+          {% if user %}
+            <a href="/dashboard" class="hover:text-primary transition-colors">{{ t.nav_dashboard if t else 'Dashboard' }}</a>
+            <a href="/logout" class="text-red-500 hover:text-red-700 transition-colors">{{ t.nav_logout if t else 'Logout' }}</a>
+          {% else %}
+            <a href="/login" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              {{ t.nav_agent_login if t else 'Agent Login' }}
+            </a>
+          {% endif %}
+
+          <!-- Language switcher -->
+          {% if supported_langs %}
+          <div class="flex items-center gap-1 border border-gray-200 rounded-lg px-1 py-0.5">
+            {% for code in supported_langs %}
+            <a href="/lang/{{ code }}"
+               class="px-2 py-0.5 rounded text-xs font-semibold transition-colors
+                      {{ 'bg-primary text-white' if lang == code else 'text-gray-500 hover:text-primary' }}">
+              {{ flags[code] }}
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Mobile hamburger -->
+        <button @click="open = !open" class="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path x-show="!open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"/>
+            <path x-show="open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div x-show="open" x-transition class="md:hidden bg-white border-t border-gray-100 px-4 pb-4 space-y-2 text-sm">
+      <a href="/properties" class="block py-2 text-gray-600 hover:text-primary">{{ t.nav_properties if t else 'Properties' }}</a>
+      <a href="/properties?listing_type=SALE" class="block py-2 text-gray-600 hover:text-primary">{{ t.nav_for_sale if t else 'For Sale' }}</a>
+      <a href="/properties?listing_type=RENT" class="block py-2 text-gray-600 hover:text-primary">{{ t.nav_for_rent if t else 'For Rent' }}</a>
+      {% if user %}
+        <a href="/dashboard" class="block py-2 text-gray-600 hover:text-primary">{{ t.nav_dashboard if t else 'Dashboard' }}</a>
+        <a href="/logout" class="block py-2 text-red-500">{{ t.nav_logout if t else 'Logout' }}</a>
+      {% else %}
+        <a href="/login" class="block py-2 text-primary font-semibold">{{ t.nav_agent_login if t else 'Agent Login' }}</a>
+      {% endif %}
+      <!-- Language switcher mobile -->
+      {% if supported_langs %}
+      <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+        {% for code in supported_langs %}
+        <a href="/lang/{{ code }}"
+           class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors
+                  {{ 'bg-primary text-white' if lang == code else 'border border-gray-200 text-gray-500 hover:text-primary' }}">
+          {{ flags[code] }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-400 mt-16">
+    <div class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="font-bold text-white text-lg"><span class="text-blue-400">Property</span> Antalya</span>
+        </div>
+        <p class="text-sm">{{ t.footer_tagline if t else 'Your trusted partner for real estate in Antalya, Turkey.' }}</p>
+      </div>
+      <div>
+        <h4 class="text-white font-semibold mb-3">{{ t.footer_links if t else 'Quick Links' }}</h4>
+        <ul class="space-y-1 text-sm">
+          <li><a href="/properties" class="hover:text-white transition-colors">{{ t.all_properties if t else 'All Properties' }}</a></li>
+          <li><a href="/properties?listing_type=SALE" class="hover:text-white transition-colors">{{ t.nav_for_sale if t else 'For Sale' }}</a></li>
+          <li><a href="/properties?listing_type=RENT" class="hover:text-white transition-colors">{{ t.nav_for_rent if t else 'For Rent' }}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="text-white font-semibold mb-3">{{ t.footer_contact if t else 'Contact' }}</h4>
+        <p class="text-sm">Antalya, Turkey</p>
+        <p class="text-sm mt-1">info@property-antalya.com</p>
+      </div>
+    </div>
+    <div class="border-t border-gray-800 text-center py-4 text-xs">
+      &copy; 2026 Property Antalya. All rights reserved.
+    </div>
+  </footer>
+
+</body>
+</html>

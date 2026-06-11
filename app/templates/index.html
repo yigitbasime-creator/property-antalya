@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Property Antalya — Find Your Dream Home{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<section class="relative bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 text-white py-24 px-4">
+  <div class="max-w-4xl mx-auto text-center">
+    <h1 class="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+      Find Your Dream Property<br/>
+      <span class="text-yellow-300">in Antalya</span>
+    </h1>
+    <p class="text-blue-100 text-lg mb-10">Over {{ stats.properties }} active listings across {{ stats.districts }} districts.</p>
+
+    <!-- Search bar -->
+    <form action="/properties" method="get" class="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
+      <input
+        type="text" name="q"
+        placeholder="Search by title, area, district..."
+        class="flex-1 px-5 py-3 rounded-xl text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow"
+      />
+      <select name="listing_type"
+        class="px-4 py-3 rounded-xl text-gray-900 text-sm focus:outline-none shadow bg-white">
+        <option value="">Buy or Rent</option>
+        <option value="SALE">For Sale</option>
+        <option value="RENT">For Rent</option>
+        <option value="SHORT_TERM_RENT">Short Term</option>
+      </select>
+      <button type="submit"
+        class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold px-6 py-3 rounded-xl shadow transition-colors">
+        Search
+      </button>
+    </form>
+  </div>
+</section>
+
+<!-- Stats bar -->
+<section class="bg-white border-b border-gray-100 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 py-5 flex flex-wrap justify-center gap-10 text-center">
+    <div>
+      <div class="text-2xl font-bold text-primary">{{ stats.properties }}+</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mt-1">Active Listings</div>
+    </div>
+    <div>
+      <div class="text-2xl font-bold text-primary">{{ stats.districts }}</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mt-1">Districts</div>
+    </div>
+    <div>
+      <div class="text-2xl font-bold text-primary">3</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mt-1">Expert Agents</div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Properties -->
+{% if featured %}
+<section class="max-w-7xl mx-auto px-4 py-14">
+  <div class="flex items-center justify-between mb-8">
+    <h2 class="text-2xl font-bold text-gray-900">Featured Properties</h2>
+    <a href="/properties" class="text-sm text-primary font-semibold hover:underline">View all &rarr;</a>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for prop in featured %}
+      {% include "partials/property_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Districts -->
+{% if districts %}
+<section class="bg-gray-100 py-14">
+  <div class="max-w-7xl mx-auto px-4">
+    <h2 class="text-2xl font-bold text-gray-900 mb-8">Browse by District</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      {% for district in districts %}
+      <a href="/properties?district_id={{ district.id }}"
+         class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all text-center group">
+        <div class="text-2xl mb-2">🏙️</div>
+        <div class="font-semibold text-gray-800 group-hover:text-primary transition-colors">{{ district.name }}</div>
+        <div class="text-xs text-gray-400 mt-1">{{ district.properties | length }} listings</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+<section class="bg-primary text-white py-16 px-4 text-center">
+  <h2 class="text-3xl font-bold mb-3">Are you a real estate agent?</h2>
+  <p class="text-blue-100 mb-8 max-w-xl mx-auto">
+    List your properties on Property Antalya and reach thousands of international buyers.
+  </p>
+  <a href="/login"
+     class="inline-block bg-white text-primary font-bold px-8 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow">
+    Agent Login
+  </a>
+</section>
+
+{% endblock %}

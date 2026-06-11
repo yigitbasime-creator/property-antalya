@@ -1,0 +1,104 @@
+{% extends "dashboard/base.html" %}
+{% block title %}My Listings — Property Antalya{% endblock %}
+
+{% block dashboard_content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">My Listings</h1>
+  <a href="/dashboard/listings/new"
+     class="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Add Listing
+  </a>
+</div>
+
+{% if properties %}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Property</th>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Price</th>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Status</th>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Stats</th>
+        <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for prop in properties %}
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="px-5 py-4">
+          <div class="flex items-center gap-3">
+            {% if prop.cover_image %}
+            <img src="{{ prop.cover_image.url }}" class="w-12 h-10 object-cover rounded-lg shrink-0"/>
+            {% else %}
+            <div class="w-12 h-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
+              </svg>
+            </div>
+            {% endif %}
+            <div>
+              <p class="font-medium text-gray-900 line-clamp-1">{{ prop.title_en }}</p>
+              <p class="text-xs text-gray-400">{{ prop.district.name if prop.district else '—' }} · {{ prop.type.value }} · {{ prop.size_sqm|int if prop.size_sqm else '—' }}m²</p>
+            </div>
+          </div>
+        </td>
+        <td class="px-4 py-4 font-semibold text-primary hidden md:table-cell">{{ prop.formatted_price }}</td>
+        <td class="px-4 py-4 hidden sm:table-cell">
+          {% set sc = {'ACTIVE': 'bg-green-100 text-green-700', 'DRAFT': 'bg-gray-100 text-gray-600', 'UNDER_OFFER': 'bg-yellow-100 text-yellow-700', 'SOLD': 'bg-red-100 text-red-600', 'ARCHIVED': 'bg-gray-100 text-gray-400'} %}
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full {{ sc.get(prop.status.value, 'bg-gray-100 text-gray-600') }}">
+            {{ prop.status.value }}
+          </span>
+        </td>
+        <td class="px-4 py-4 hidden lg:table-cell">
+          <div class="flex items-center gap-3 text-xs text-gray-500">
+            <span title="Views">👁 {{ prop.view_count or 0 }}</span>
+            <span title="Inquiries">💬 {{ inq_counts.get(prop.id, 0) }}</span>
+          </div>
+        </td>
+        <td class="px-5 py-4 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <a href="/properties/{{ prop.slug }}" target="_blank"
+               class="p-1.5 text-gray-400 hover:text-primary transition-colors" title="View">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </a>
+            <a href="/dashboard/listings/{{ prop.id }}/edit"
+               class="p-1.5 text-gray-400 hover:text-primary transition-colors" title="Edit">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </a>
+            <form method="post" action="/dashboard/listings/{{ prop.id }}/delete"
+                  onsubmit="return confirm('Archive this listing?')">
+              <button type="submit" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Archive">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center text-gray-400">
+  <p class="font-semibold text-gray-600 text-lg">No listings yet</p>
+  <p class="text-sm mt-2 mb-6">Create your first property listing to get started.</p>
+  <a href="/dashboard/listings/new"
+     class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+    Add Your First Listing
+  </a>
+</div>
+{% endif %}
+{% endblock %}

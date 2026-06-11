@@ -1,0 +1,298 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{% if prop %}Edit Listing{% else %}New Listing{% endif %} — Property Antalya{% endblock %}
+
+{% set inp = "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="/dashboard/listings" class="text-gray-400 hover:text-gray-600 transition-colors">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">{% if prop %}Edit Listing{% else %}New Listing{% endif %}</h1>
+    <p class="text-sm text-gray-400">{% if prop %}Update property details{% else %}Add a new property{% endif %}</p>
+  </div>
+</div>
+
+{% if error %}
+<div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-5">{{ error }}</div>
+{% endif %}
+
+<form method="post"
+      action="{% if prop %}/dashboard/listings/{{ prop.id }}/edit{% else %}/dashboard/listings/new{% endif %}"
+      enctype="multipart/form-data" class="space-y-6">
+
+  <!-- Title -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Title</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Title (English) *</label>
+        <input type="text" name="title_en" required value="{{ prop.title_en if prop else '' }}" class="{{ inp }}"/>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Title (Turkish)</label>
+        <input type="text" name="title_tr" value="{{ prop.title_tr if prop and prop.title_tr else '' }}" class="{{ inp }}"/>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Title (German)</label>
+        <input type="text" name="title_de" value="{{ prop.title_de if prop and prop.title_de else '' }}" class="{{ inp }}"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Type & Location -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Type & Location</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Property Type *</label>
+        <select name="type" required class="{{ inp }}">
+          {% for t in property_types %}
+          <option value="{{ t }}" {% if prop and prop.type.value == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Listing Type *</label>
+        <select name="listing_type" required class="{{ inp }}">
+          {% for t in listing_types %}
+          <option value="{{ t }}" {% if prop and prop.listing_type.value == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="space-y-1" x-data="{ districtId: '{{ prop.district_id if prop else '' }}' }">
+        <label class="block text-xs font-medium text-gray-500">District *</label>
+        <select name="district_id" required class="{{ inp }}"
+                x-model="districtId"
+                @change="fetch('/api/neighborhoods?district_id=' + districtId)
+                  .then(r => r.json()).then(data => {
+                    const sel = document.getElementById('neighborhood_sel');
+                    sel.innerHTML = '<option value=\"\">— Select —</option>' +
+                      data.map(n => `<option value='${n.id}'>${n.name}</option>`).join('');
+                  })">
+          <option value="">— Select district —</option>
+          {% for d in districts %}
+          <option value="{{ d.id }}" {% if prop and prop.district_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Neighborhood</label>
+        <select name="neighborhood_id" id="neighborhood_sel" class="{{ inp }}">
+          <option value="">— Select —</option>
+          {% if neighborhoods %}
+            {% for n in neighborhoods %}
+            <option value="{{ n.id }}" {% if prop and prop.neighborhood_id == n.id %}selected{% endif %}>{{ n.name }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+      <div class="space-y-1 md:col-span-2">
+        <label class="block text-xs font-medium text-gray-500">Address</label>
+        <input type="text" name="address" value="{{ prop.address if prop and prop.address else '' }}" placeholder="Street address" class="{{ inp }}"/>
+      </div>
+    </div>
+
+    <!-- Map picker -->
+    <div class="space-y-2">
+      <label class="block text-xs font-medium text-gray-500">
+        Pin Location on Map
+        <span class="text-gray-400 font-normal ml-1">(click map to set coordinates)</span>
+      </label>
+      <div id="location-picker" class="h-64 rounded-xl border border-gray-200 overflow-hidden"></div>
+      <div class="flex gap-4">
+        <div class="space-y-1 flex-1">
+          <label class="block text-xs font-medium text-gray-500">Latitude</label>
+          <input type="number" name="latitude" id="lat-input" step="any"
+                 value="{{ prop.latitude if prop and prop.latitude else '' }}"
+                 placeholder="e.g. 36.884" class="{{ inp }}"/>
+        </div>
+        <div class="space-y-1 flex-1">
+          <label class="block text-xs font-medium text-gray-500">Longitude</label>
+          <input type="number" name="longitude" id="lng-input" step="any"
+                 value="{{ prop.longitude if prop and prop.longitude else '' }}"
+                 placeholder="e.g. 30.705" class="{{ inp }}"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price & Details -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Price & Details</h2>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div class="space-y-1 md:col-span-2">
+        <label class="block text-xs font-medium text-gray-500">Price *</label>
+        <div class="flex gap-2">
+          <input type="number" name="price" required min="0"
+                 value="{{ prop.price|int if prop else '' }}"
+                 class="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          <select name="currency" class="w-24 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% for c in currencies %}
+            <option value="{{ c }}" {% if prop and prop.currency.value == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Size (m²)</label>
+        <input type="number" name="size_sqm" min="1" value="{{ prop.size_sqm|int if prop and prop.size_sqm else '' }}" class="{{ inp }}"/>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Bedrooms</label>
+        <input type="number" name="bedrooms" min="0" value="{{ prop.bedrooms if prop and prop.bedrooms is not none else '' }}" class="{{ inp }}"/>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Bathrooms</label>
+        <input type="number" name="bathrooms" min="0" value="{{ prop.bathrooms if prop and prop.bathrooms is not none else '' }}" class="{{ inp }}"/>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Floor</label>
+        <input type="number" name="floor" value="{{ prop.floor if prop and prop.floor is not none else '' }}" class="{{ inp }}"/>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Total Floors</label>
+        <input type="number" name="total_floors" min="1" value="{{ prop.total_floors if prop and prop.total_floors is not none else '' }}" class="{{ inp }}"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Amenities -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Amenities</h2>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+      {% set amenity_fields = [
+        ('has_pool','Pool'),('has_parking','Parking'),('is_furnished','Furnished'),
+        ('has_garden','Garden'),('has_security','Security'),('has_elevator','Elevator'),
+        ('has_balcony','Balcony'),('has_terrace','Terrace'),('eligible_for_citizenship','Citizenship Eligible')
+      ] %}
+      {% for field, label in amenity_fields %}
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" name="{{ field }}" value="true"
+               {% if prop and prop[field] %}checked{% endif %}
+               class="w-4 h-4 rounded accent-blue-600"/>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Description</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Description (English)</label>
+        <textarea name="description_en" rows="5" class="{{ inp }} resize-none">{{ prop.description_en if prop and prop.description_en else '' }}</textarea>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Description (Turkish)</label>
+        <textarea name="description_tr" rows="5" class="{{ inp }} resize-none">{{ prop.description_tr if prop and prop.description_tr else '' }}</textarea>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-medium text-gray-500">Description (German)</label>
+        <textarea name="description_de" rows="5" class="{{ inp }} resize-none">{{ prop.description_de if prop and prop.description_de else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Images -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+    <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Images</h2>
+    {% if prop and prop.images %}
+    <div class="flex gap-3 flex-wrap mb-3">
+      {% for img in prop.images %}
+      <div class="relative">
+        <img src="{{ img.url }}" class="w-24 h-20 object-cover rounded-xl border border-gray-200"/>
+        {% if img.is_cover %}<span class="absolute top-1 left-1 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-md">Cover</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <label class="block">
+      <span class="text-xs font-medium text-gray-500">Upload photos (first image = cover)</span>
+      <input type="file" name="images" multiple accept="image/*"
+             class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100"/>
+    </label>
+  </div>
+
+  <!-- Status + Submit -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center justify-between gap-4">
+    <div class="space-y-1">
+      <label class="block text-xs font-medium text-gray-500">Status</label>
+      <select name="status" class="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-40">
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if prop and prop.status.value == s %}selected{% elif not prop and s == 'ACTIVE' %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/dashboard/listings" class="text-sm text-gray-500 hover:text-gray-700 px-4 py-2.5">Cancel</a>
+      <button type="submit"
+              class="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        {% if prop %}Save Changes{% else %}Create Listing{% endif %}
+      </button>
+    </div>
+  </div>
+
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const latInput = document.getElementById('lat-input');
+  const lngInput = document.getElementById('lng-input');
+
+  const initLat = parseFloat(latInput.value) || 36.8841;
+  const initLng = parseFloat(lngInput.value) || 30.7056;
+  const hasPin  = latInput.value && lngInput.value;
+
+  const map = L.map('location-picker').setView([initLat, initLng], hasPin ? 15 : 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  }).addTo(map);
+
+  let marker = null;
+  if (hasPin) {
+    marker = L.marker([initLat, initLng]).addTo(map);
+  }
+
+  map.on('click', function (e) {
+    const { lat, lng } = e.latlng;
+    latInput.value = lat.toFixed(6);
+    lngInput.value = lng.toFixed(6);
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      marker = L.marker([lat, lng]).addTo(map);
+    }
+  });
+
+  // Sync manual input back to map
+  function syncFromInputs() {
+    const lat = parseFloat(latInput.value);
+    const lng = parseFloat(lngInput.value);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      map.setView([lat, lng], 15);
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+      } else {
+        marker = L.marker([lat, lng]).addTo(map);
+      }
+    }
+  }
+  latInput.addEventListener('change', syncFromInputs);
+  lngInput.addEventListener('change', syncFromInputs);
+});
+</script>
+{% endblock %}
