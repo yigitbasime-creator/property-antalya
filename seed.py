@@ -13,7 +13,8 @@ models.Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 
 # Clear existing data
-for model in [PropertyImage, Property, Neighborhood, District, Agent, User]:
+from app.models import Inquiry
+for model in [Inquiry, PropertyImage, Property, Neighborhood, District, Agent, User]:
     db.query(model).delete()
 db.commit()
 
